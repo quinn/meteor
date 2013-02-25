@@ -27,7 +27,7 @@ Package.on_use(function (api) {
 
 Package.on_test(function (api) {
   api.use('livedata', ['client', 'server']);
-  api.use('mongo-livedata', ['client', 'server']);
+  api.use('neo4j-livedata', ['client', 'server']);
   api.use('test-helpers', ['client', 'server']);
   api.use('tinytest');
 

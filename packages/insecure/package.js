@@ -3,6 +3,6 @@ Package.describe({
 });
 
 Package.on_use(function (api) {
-  api.use(['mongo-livedata']);
+  api.use(['neo4j-livedata']);
   api.add_files(['insecure.js'], 'server');
 });

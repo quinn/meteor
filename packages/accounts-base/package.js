@@ -9,7 +9,7 @@ Package.on_use(function (api) {
 
   // need this because of the Meteor.users collection but in the future
   // we'd probably want to abstract this away
-  api.use('mongo-livedata', ['client', 'server']);
+  api.use('neo4j-livedata', ['client', 'server']);
 
   api.add_files('accounts_common.js', ['client', 'server']);
   api.add_files('accounts_server.js', 'server');

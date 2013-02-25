@@ -1244,7 +1244,7 @@ _.extend(Meteor._LivedataServer.prototype, {
   },
 
   // A much more elegant way to do this would be: let any autopublish
-  // provider (eg, mongo-livedata) declare a weak package dependency
+  // provider (eg, neo4j-livedata) declare a weak package dependency
   // on the autopublish package, then have that package simply set a
   // flag that eg the Collection constructor checks, and autopublishes
   // if necessary.
