@@ -1,24 +1,24 @@
 (function(){
 /**
  * Provide a synchronous Collection API using fibers, backed by
- * MongoDB.  This is only for use on the server, and mostly identical
+ * Neo4j.  This is only for use on the server, and mostly identical
  * to the client API.
  *
  * NOTE: the public API methods must be run within a fiber. If you call
  * these outside of a fiber they will explode!
  */
-
-var path = __meteor_bootstrap__.require('path');
-var MongoDB = __meteor_bootstrap__.require('mongodb');
-var Fiber = __meteor_bootstrap__.require('fibers');
+var sys    = __meteor_bootstrap__.require('sys');
+var path   = __meteor_bootstrap__.require('path');
+var Neo4j  = __meteor_bootstrap__.require('neo4j');
+var Fiber  = __meteor_bootstrap__.require('fibers');
 var Future = __meteor_bootstrap__.require(path.join('fibers', 'future'));
 
 var replaceMongoAtomWithMeteor = function (document) {
-  if (document instanceof MongoDB.Binary) {
+  if (document instanceof Neo4j.Binary) {
     var buffer = document.value(true);
     return new Uint8Array(buffer);
   }
-  if (document instanceof MongoDB.ObjectID) {
+  if (document instanceof Neo4j.ObjectID) {
     return new Meteor.Collection.ObjectID(document.toHexString());
   }
   return undefined;
@@ -27,12 +27,12 @@ var replaceMongoAtomWithMeteor = function (document) {
 var replaceMeteorAtomWithMongo = function (document) {
   if (EJSON.isBinary(document)) {
     // This does more copies than we'd like, but is necessary because
-    // MongoDB.BSON only looks like it takes a Uint8Array (and doesn't actually
+    // Neo4j.BSON only looks like it takes a Uint8Array (and doesn't actually
     // serialize it correctly).
-    return new MongoDB.Binary(new Buffer(document));
+    return new Neo4j.Binary(new Buffer(document));
   }
   if (document instanceof Meteor.Collection.ObjectID) {
-    return new MongoDB.ObjectID(document.toHexString());
+    return new Neo4j.ObjectID(document.toHexString());
   }
   return undefined;
 };
@@ -58,6 +58,45 @@ var replaceTypes = function (document, atomTransformer) {
   return ret;
 };
 
+Neo4jLazyCollection = function (type, callback) {
+
+}
+
+Neo4jCursor = function (collection, args) {
+
+}
+
+Neo4jCursor.prototype.nextObject = function (callback) {
+  var self = this;
+  callback(null, {});
+}
+
+Neo4jCursor.prototype.count = function (one, two, thrrrrrr) {
+  var self = this;
+  return 0;
+}
+
+Neo4jCursor.prototype.rewind = function () {
+  return undefined;
+}
+
+Neo4jLazyCollection.prototype.exec = function (callback) {
+  var query = [
+    'START model_type=node(*)',
+    'WHERE model_type.type = "'+this.type+'"',
+    'RETURN model_type'
+  ].join('\n');
+
+  this.query(query, callback);
+}
+
+Neo4jLazyCollection.prototype.wait = function (callback) {
+  callback(undefined, this);
+}
+
+Neo4jLazyCollection.prototype.find = function () {
+  return new Neo4jCursor(this, arguments);
+}
 
 _Mongo = function (url) {
   var self = this;
@@ -74,28 +113,37 @@ _Mongo = function (url) {
       url += '?autoReconnect=true';
   }
 
-  MongoDB.connect(url, {db: {safe: true}}, function(err, db) {
-    if (err)
-      throw err;
-    self.db = db;
+  self.db = new Neo4j.GraphDatabase('http://localhost:7474');
 
-    // drain queue of pending callbacks
-    var c;
-    while ((c = self.collection_queue.pop())) {
-      Fiber(function () {
-        db.collection(c.name, c.callback);
-      }).run();
-    }
-  });
+  self.db.collection = function (type, callback) {
+    collection = new Neo4jLazyCollection(this, type);
+    collection.wait(callback);
+  };
+
+  self.db.ensureIndex = function () {
+    throw shit;
+  }
+
+  // drain queue of pending callbacks
+  var c;
+  while ((c = self.collection_queue.pop())) {
+    Fiber(function () {
+
+      db.collection(c.name, c.callback);
+    }).run();
+  }
 };
 
 // callback: lambda (err, collection) called when
 // collection is ready to go, or on error.
 _Mongo.prototype._withCollection = function(collection_name, callback) {
+  sys.puts('called _withCollection');
   var self = this;
 
   if (self.db) {
-    self.db.collection(collection_name, callback);
+    self.db.collection(collection_name, function (err, result) {
+      callback(err,result);
+    });
   } else {
     self.collection_queue.push({name: collection_name, callback: callback});
   }
@@ -107,6 +155,7 @@ _Mongo.prototype._withCollection = function(collection_name, callback) {
 // after the observer notifiers have added themselves to the write
 // fence), you should call 'committed()' on the object returned.
 _Mongo.prototype._maybeBeginWrite = function () {
+  sys.puts('called _maybeBeginWrite');
   var self = this;
   var fence = Meteor._CurrentWriteFence.get();
   if (fence)
@@ -135,6 +184,7 @@ _Mongo.prototype._maybeBeginWrite = function () {
 // observer "has been notified" if its callback has returned.
 
 _Mongo.prototype.insert = function (collection_name, document) {
+  sys.puts('called insert');
   var self = this;
   if (collection_name === "___meteor_failure_test_collection" &&
       document.fail) {
@@ -169,6 +219,7 @@ _Mongo.prototype.insert = function (collection_name, document) {
 // Cause queries that may be affected by the selector to poll in this write
 // fence.
 _Mongo.prototype._refresh = function (collectionName, selector) {
+  sys.puts('called _refresh');
   var self = this;
   var refreshKey = {collection: collectionName};
   // If we know which documents we're removing, don't poll queries that are
@@ -186,6 +237,7 @@ _Mongo.prototype._refresh = function (collectionName, selector) {
 };
 
 _Mongo.prototype.remove = function (collection_name, selector) {
+  sys.puts('called remove');
   var self = this;
 
   if (collection_name === "___meteor_failure_test_collection" &&
@@ -218,6 +270,7 @@ _Mongo.prototype.remove = function (collection_name, selector) {
 };
 
 _Mongo.prototype.update = function (collection_name, selector, mod, options) {
+  sys.puts('called update');
   var self = this;
 
   if (collection_name === "___meteor_failure_test_collection" &&
@@ -258,6 +311,7 @@ _Mongo.prototype.update = function (collection_name, selector, mod, options) {
 };
 
 _Mongo.prototype.find = function (collectionName, selector, options) {
+  sys.puts('called find');
   var self = this;
 
   if (arguments.length === 1)
@@ -268,6 +322,7 @@ _Mongo.prototype.find = function (collectionName, selector, options) {
 };
 
 _Mongo.prototype.findOne = function (collection_name, selector, options) {
+  sys.puts('called findOne');
   var self = this;
   if (arguments.length === 1)
     selector = {};
@@ -279,6 +334,7 @@ _Mongo.prototype.findOne = function (collection_name, selector, options) {
 // We'll actually design an index API later. For now, we just pass through to
 // Mongo's, but make it synchronous.
 _Mongo.prototype._ensureIndex = function (collectionName, index, options) {
+  sys.puts('called _ensureIndex');
   var self = this;
   options = _.extend({safe: true}, options);
 
@@ -290,14 +346,16 @@ _Mongo.prototype._ensureIndex = function (collectionName, index, options) {
       future.throw(err);
       return;
     }
+
     // XXX do we have to bindEnv or Fiber.run this callback?
-    collection.ensureIndex(index, options, function (err, indexName) {
-      if (err) {
-        future.throw(err);
-        return;
-      }
-      future.ret();
-    });
+    // collection.ensureIndex(index, options, function (err, indexName) {
+    //   if (err) {
+    //     future.throw(err);
+    //     return;
+    //   }
+    //   future.ret();
+    // });
+    future.ret();
   });
   future.wait();
 };
@@ -309,7 +367,7 @@ _Mongo.prototype._ensureIndex = function (collectionName, index, options) {
 // CursorDescription represents the arguments used
 // to construct a cursor: collectionName, selector, and (find) options.
 //
-// SynchronousCursor is a wrapper around a MongoDB cursor
+// SynchronousCursor is a wrapper around a Neo4j cursor
 // which includes fully-synchronous versions of forEach, etc.
 //
 // Cursor is the cursor object returned from find(), which implements the
@@ -395,26 +453,29 @@ Cursor.prototype.observeChanges = function (callbacks) {
 };
 
 _Mongo.prototype._createSynchronousCursor = function (cursorDescription) {
+  sys.puts('called _createSynchronousCursor');
   var self = this;
 
   var future = new Future;
-  self._withCollection(
-    cursorDescription.collectionName, function (err, collection) {
+  self._withCollection(cursorDescription.collectionName, function (err, collection) {
       if (err) {
         future.ret([false, err]);
         return;
       }
+
       var options = cursorDescription.options;
-      var dbCursor = collection.find(
-        replaceTypes(cursorDescription.selector, replaceMeteorAtomWithMongo),
+
+      var dbCursor = collection.find(replaceTypes(cursorDescription.selector, replaceMeteorAtomWithMongo),
         options.fields, {
           sort: options.sort,
           limit: options.limit,
           skip: options.skip
         });
+
       future.ret([true, dbCursor]);
     });
 
+  sys.puts(sys.inspect(result));
   var result = future.wait();
   if (!result[0])
     throw result[1];
@@ -425,8 +486,8 @@ _Mongo.prototype._createSynchronousCursor = function (cursorDescription) {
 var SynchronousCursor = function (dbCursor) {
   var self = this;
   self._dbCursor = dbCursor;
-  self._synchronousNextObject = Future.wrap(dbCursor.nextObject.bind(dbCursor));
-  self._synchronousCount = Future.wrap(dbCursor.count.bind(dbCursor));
+  self._synchronousNextObject = Future.wrap(dbCursor.nextObject);
+  self._synchronousCount      = Future.wrap(dbCursor.count);
   self._visitedIds = {};
 };
 
@@ -523,8 +584,9 @@ ObserveHandle.prototype.stop = function () {
   self._liveResultsSet = null;
 };
 
-_Mongo.prototype._observeChanges = function (
-    cursorDescription, ordered, callbacks) {
+_Mongo.prototype._observeChanges = function (cursorDescription, ordered, callbacks) {
+  sys.puts('called _observeChanges');
+
   var self = this;
   var observeKey = JSON.stringify(
     _.extend({ordered: ordered}, cursorDescription));
@@ -559,6 +621,8 @@ _Mongo.prototype._observeChanges = function (
   if (newlyCreated) {
     // This is the first ObserveHandle on this LiveResultsSet.  Add it and run
     // the initial synchronous poll (which may yield).
+    sys.puts('observeHandle');
+    sys.puts(observeHandle);
     liveResultsSet._addFirstObserveHandle(observeHandle);
   } else {
     // Not the first ObserveHandle. Add it to the LiveResultsSet. This call
@@ -621,7 +685,7 @@ var LiveResultsSet = function (cursorDescription, mongoHandle, ordered,
         var fence = Meteor._CurrentWriteFence.get();
         if (fence)
           self._pendingWrites.push(fence.beginWrite());
-        // Ensure a poll is scheduled... but if we already know that one is,
+        // Ensure a poll is scheduled but if we already know that one is,
         // don't hit the throttled _ensurePollIsScheduled function (which might
         // lead to us calling it unnecessarily in 50ms).
         if (self._pollsScheduledButNotStarted === 0)

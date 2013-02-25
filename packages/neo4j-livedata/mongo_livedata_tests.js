@@ -25,7 +25,7 @@ _.each( ['STRING', 'MONGO'], function(idGeneration) {
 
 var collectionOptions = { idGeneration: idGeneration};
 
-testAsyncMulti("mongo-livedata - database error reporting. " + idGeneration, [
+testAsyncMulti("neo4j-livedata - database error reporting. " + idGeneration, [
   function (test, expect) {
     var ftc = Meteor._FailureTestCollection;
 
@@ -54,7 +54,7 @@ testAsyncMulti("mongo-livedata - database error reporting. " + idGeneration, [
 ]);
 
 
-Tinytest.addAsync("mongo-livedata - basics, " + idGeneration, function (test, onComplete) {
+Tinytest.addAsync("neo4j-livedata - basics, " + idGeneration, function (test, onComplete) {
   var run = test.runId();
   var coll, coll2;
   if (Meteor.isClient) {
@@ -189,7 +189,7 @@ Tinytest.addAsync("mongo-livedata - basics, " + idGeneration, function (test, on
   onComplete();
 });
 
-Tinytest.addAsync("mongo-livedata - fuzz test, " + idGeneration, function(test, onComplete) {
+Tinytest.addAsync("neo4j-livedata - fuzz test, " + idGeneration, function(test, onComplete) {
 
   var run = test.runId();
   var coll;
@@ -327,7 +327,7 @@ var runInFence = function (f) {
   }
 };
 
-Tinytest.addAsync("mongo-livedata - scribbling, " + idGeneration, function (test, onComplete) {
+Tinytest.addAsync("neo4j-livedata - scribbling, " + idGeneration, function (test, onComplete) {
   var run = test.runId();
   var coll;
   if (Meteor.isClient) {
@@ -357,7 +357,7 @@ Tinytest.addAsync("mongo-livedata - scribbling, " + idGeneration, function (test
   onComplete();
 });
 
-Tinytest.addAsync("mongo-livedata - stop handle in callback, " + idGeneration, function (test, onComplete) {
+Tinytest.addAsync("neo4j-livedata - stop handle in callback, " + idGeneration, function (test, onComplete) {
   var run = test.runId();
   var coll;
   if (Meteor.isClient) {
@@ -412,7 +412,7 @@ Tinytest.addAsync("mongo-livedata - stop handle in callback, " + idGeneration, f
 
 // This behavior isn't great, but it beats deadlock.
 if (Meteor.isServer) {
-  Tinytest.addAsync("mongo-livedata - recursive observe throws, " + idGeneration, function (test, onComplete) {
+  Tinytest.addAsync("neo4j-livedata - recursive observe throws, " + idGeneration, function (test, onComplete) {
     var run = test.runId();
     var coll = new Meteor.Collection("observeInCallback-"+run, collectionOptions);
 
@@ -437,7 +437,7 @@ if (Meteor.isServer) {
     onComplete();
   });
 
-  Tinytest.addAsync("mongo-livedata - cursor dedup, " + idGeneration, function (test, onComplete) {
+  Tinytest.addAsync("neo4j-livedata - cursor dedup, " + idGeneration, function (test, onComplete) {
     var run = test.runId();
     var coll = new Meteor.Collection("cursorDedup-"+run, collectionOptions);
 
@@ -545,7 +545,7 @@ if (Meteor.isServer) {
 }
 
 
-testAsyncMulti('mongo-livedata - rewrite selector, ' + idGeneration, [
+testAsyncMulti('neo4j-livedata - rewrite selector, ' + idGeneration, [
   function (test, expect) {
     var collectionName = Random.id();
     if (Meteor.isClient) {
@@ -583,7 +583,7 @@ testAsyncMulti('mongo-livedata - rewrite selector, ' + idGeneration, [
   }
 ]);
 
-testAsyncMulti('mongo-livedata - empty documents, ' + idGeneration, [
+testAsyncMulti('neo4j-livedata - empty documents, ' + idGeneration, [
   function (test, expect) {
     var collectionName = Random.id();
     if (Meteor.isClient) {
@@ -604,7 +604,7 @@ testAsyncMulti('mongo-livedata - empty documents, ' + idGeneration, [
   }
 ]);
 
-testAsyncMulti('mongo-livedata - document with a date, ' + idGeneration, [
+testAsyncMulti('neo4j-livedata - document with a date, ' + idGeneration, [
   function (test, expect) {
     var collectionName = Random.id();
     if (Meteor.isClient) {
@@ -625,7 +625,7 @@ testAsyncMulti('mongo-livedata - document with a date, ' + idGeneration, [
   }
 ]);
 
-testAsyncMulti('mongo-livedata - document with binary data, ' + idGeneration, [
+testAsyncMulti('neo4j-livedata - document with binary data, ' + idGeneration, [
   function (test, expect) {
     var bin = EJSON._base64Decode(
       "TWFuIGlzIGRpc3Rpbmd1aXNoZWQsIG5vdCBvbmx5IGJ5IGhpcyBy" +
@@ -657,7 +657,7 @@ testAsyncMulti('mongo-livedata - document with binary data, ' + idGeneration, [
 ]);
 
 if (Meteor.isServer) {
-  Tinytest.addAsync("mongo-livedata - id-based invalidation, " + idGeneration, function (test, onComplete) {
+  Tinytest.addAsync("neo4j-livedata - id-based invalidation, " + idGeneration, function (test, onComplete) {
     var run = test.runId();
     var coll = new Meteor.Collection("livedata_invalidation_collection_"+run, collectionOptions);
 
@@ -749,7 +749,7 @@ if (Meteor.isServer) {
 
 });  // end idGeneration parametrization
 
-testAsyncMulti('mongo-livedata - specified _id', [
+testAsyncMulti('neo4j-livedata - specified _id', [
   function (test, expect) {
     var collectionName = Random.id();
     if (Meteor.isClient) {
